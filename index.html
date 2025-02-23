@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Soil Quality Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Soil Quality Analysis Dashboard</h1>
+        
+        <!-- Main Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Data Input Section -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Soil Data Input</h2>
+                <form id="soilForm" class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Temperature (°C)</label>
+                        <input type="range" id="temp" min="0" max="50" step="0.1" class="w-full" required>
+                        <span id="tempValue" class="block text-sm text-gray-500"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">pH Level</label>
+                        <input type="range" id="ph" min="0" max="14" step="0.1" class="w-full" required>
+                        <span id="phValue" class="block text-sm text-gray-500"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Nitrogen (mg/kg)</label>
+                        <input type="range" id="nitrogen" min="0" max="500" step="1" class="w-full" required>
+                        <span id="nitrogenValue" class="block text-sm text-gray-500"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Phosphorus (mg/kg)</label>
+                        <input type="range" id="phosphorus" min="0" max="500" step="1" class="w-full" required>
+                        <span id="phosphorusValue" class="block text-sm text-gray-500"></span>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Rainfall (mm)</label>
+                        <input type="range" id="rainfall" min="0" max="2000" step="1" class="w-full" required>
+                        <span id="rainfallValue" class="block text-sm text-gray-500"></span>
+                    </div>
+                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600">
+                        Analyze Soil
+                    </button>
+                </form>
+            </div>
+
+            <!-- Analysis Results -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <canvas id="soilChart" class="mt-4"></canvas>
+                <h2 class="text-xl font-semibold mb-4">Analysis Results</h2>
+                <div id="analysisResults" class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="bg-blue-50 p-6 rounded-lg shadow">
+                            <h3 class="font-semibold text-blue-800 text-xl mb-4">Soil Quality Analysis</h3>
+                            Note: Values are based on basic computational analysis
+                            <div class="flex items-center space-x-4">
+                                <div class="relative w-32 h-32">
+                                    <!-- Add circular progress indicator -->
+                                    <svg class="w-full h-full" viewBox="0 0 36 36">
+                                        <path d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                            fill="none"
+                                            stroke="#E2E8F0"
+                                            stroke-width="3" />
+                                        <path id="scoreIndicator"
+                                            fill="none"
+                                            stroke="#3B82F6"
+                                            stroke-width="3"
+                                            stroke-dasharray="100, 100" />
+                                    </svg>
+                                    
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                                        <span id="qualityScore" class="text-3xl font-bold text-blue-600"></span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold text-blue-800">Parameter Scores</h4>
+                                    <ul id="parameterScores" class="mt-2 space-y-1 text-sm text-blue-700"></ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="bg-green-50 p-6 rounded-lg shadow">
+                            <h3 class="font-semibold text-green-800 text-xl mb-4">AI Recommendations</h3>
+                            <div id="aiAnalysis" class="prose prose-sm max-w-none text-green-700"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add this HTML after your existing soil metrics section -->
+        <div class="bg-white p-6 rounded-lg shadow mt-6">
+            <h3 class="font-semibold text-gray-800 text-xl mb-4">Parameter Comparison</h3>
+            <canvas id="parameterChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Chart.js
+        const ctx = document.getElementById('soilChart').getContext('2d');
+        let soilChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: ['Temperature', 'pH', 'Nitrogen', 'Phosphorus', 'Rainfall'],
+                datasets: [{
+                    label: 'Soil Metrics',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    r: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+
+        // Add this JavaScript code after your existing chart initialization
+        const paramCtx = document.getElementById('parameterChart').getContext('2d');
+        let parameterChart = new Chart(paramCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Temperature', 'pH', 'Nitrogen', 'Phosphorus', 'Rainfall'],
+                datasets: [{
+                    label: 'Current Values',
+                    data: [0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.5)',
+                        'rgba(54, 162, 235, 0.5)', 
+                        'rgba(75, 192, 192, 0.5)',
+                        'rgba(153, 102, 255, 0.5)',
+                        'rgba(255, 159, 64, 0.5)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(54, 162, 235, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)',
+                        'rgba(255, 159, 64, 1)'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Value'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update slider values
+        const tempSlider = document.getElementById('temp');
+        const phSlider = document.getElementById('ph');
+        const nitrogenSlider = document.getElementById('nitrogen');
+        const phosphorusSlider = document.getElementById('phosphorus');
+        const rainfallSlider = document.getElementById('rainfall');
+
+        const tempValue = document.getElementById('tempValue');
+        const phValue = document.getElementById('phValue');
+        const nitrogenValue = document.getElementById('nitrogenValue');
+        const phosphorusValue = document.getElementById('phosphorusValue');
+        const rainfallValue = document.getElementById('rainfallValue');
+
+        tempSlider.addEventListener('input', () => tempValue.textContent = tempSlider.value);
+        phSlider.addEventListener('input', () => phValue.textContent = phSlider.value);
+        nitrogenSlider.addEventListener('input', () => nitrogenValue.textContent = nitrogenSlider.value);
+        phosphorusSlider.addEventListener('input', () => phosphorusValue.textContent = phosphorusSlider.value);
+        rainfallSlider.addEventListener('input', () => rainfallValue.textContent = rainfallSlider.value);
+
+        // Form submission handler
+        document.getElementById('soilForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const soilData = {
+                temp: parseFloat(tempSlider.value),
+                ph: parseFloat(phSlider.value),
+                nitrogen: parseFloat(nitrogenSlider.value),
+                phosphorus: parseFloat(phosphorusSlider.value),
+                rainfall: parseFloat(rainfallSlider.value)
+            };
+
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ soilData })
+                });
+
+                const data = await response.json();
+                
+                // Update both charts with new values
+                soilChart.data.datasets[0].data = [
+                    soilData.temp,
+                    soilData.ph,
+                    soilData.nitrogen,
+                    soilData.phosphorus,
+                    soilData.rainfall
+                ];
+                soilChart.update();
+
+                parameterChart.data.datasets[0].data = [
+                    soilData.temp,
+                    soilData.ph,
+                    soilData.nitrogen,
+                    soilData.phosphorus,
+                    soilData.rainfall
+                ];
+                parameterChart.update();
+
+                // Update the analysis results section
+                const analysisResults = document.getElementById('analysisResults');
+                const qualityScore = document.getElementById('qualityScore');
+                const aiAnalysis = document.getElementById('aiAnalysis');
+                const parameterScores = document.getElementById('parameterScores');
+
+                qualityScore.textContent = `${data.soilQualityScore}`;
+                aiAnalysis.innerHTML = marked.parse(data.analysis);
+
+                // Update the circular progress indicator
+                const circumference = 2 * Math.PI * 15.9155;
+                const scoreIndicator = document.getElementById('scoreIndicator');
+                scoreIndicator.style.strokeDasharray = `${(data.soilQualityScore / 100) * circumference}, ${circumference}`;
+
+                // Display parameter scores
+                parameterScores.innerHTML = Object.entries(data.parameterScores)
+                    .map(([param, score]) => `
+                        <li class="flex justify-between">
+                            <span class="capitalize">${param}:</span>
+                            <span class="font-medium">${score}%</span>
+                        </li>
+                    `).join('');
+
+                // New crop prediction request
+                const predictionResponse = await fetch('/predict-crops', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ soilData })
+                });
+
+                const predictions = await predictionResponse.json();
+                
+                // Update AI predictions display
+                const aiPredictions = document.getElementById('aiPredictions');
+                aiPredictions.innerHTML = predictions.predictions
+                    .map(p => `
+                        <div class="p-4 border rounded-lg bg-green-50">
+                            <h3 class="font-semibold text-green-800">${p.crop}</h3>
+                            <div class="flex items-center mt-2">
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-green-600 h-2.5 rounded-full" style="width: ${p.probability}%"></div>
+                                </div>
+                                <span class="ml-2 text-sm text-gray-600">${p.probability}%</span>
+                            </div>
+                            <p class="text-sm mt-2 text-gray-600">${p.conditions}</p>
+                        </div>
+                    `).join('');
+
+                // Update crop chart
+                cropChart.data.labels = predictions.predictions.map(p => p.crop);
+                cropChart.data.datasets[0].data = predictions.predictions.map(p => p.probability);
+                cropChart.update();
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+
+        // Add real-time updates for the bar chart when sliders change
+        function updateBarChart() {
+            parameterChart.data.datasets[0].data = [
+                parseFloat(tempSlider.value),
+                parseFloat(phSlider.value),
+                parseFloat(nitrogenSlider.value),
+                parseFloat(phosphorusSlider.value),
+                parseFloat(rainfallSlider.value)
+            ];
+            parameterChart.update();
+        }
+
+        tempSlider.addEventListener('input', updateBarChart);
+        phSlider.addEventListener('input', updateBarChart);
+        nitrogenSlider.addEventListener('input', updateBarChart);
+        phosphorusSlider.addEventListener('input', updateBarChart);
+        rainfallSlider.addEventListener('input', updateBarChart);
+
+        // Load yield data
+        async function loadYieldData() {
+            const response = await fetch('/yield-data');
+            const data = await response.json();
+            const yieldDataElement = document.getElementById('yieldData');
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">${row.Area}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${row.Item}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${row.Year}</td>
+                    <td class="px-6 py-4 whitespace-nowrap">${row['hg/ha_yield']}</td>
+                `;
+                yieldDataElement.appendChild(tr);
+            });
+        }
+
+        loadYieldData();
+
+        // Initialize charts
+        const cropChart = initializeCropChart();
+    </script>
+</body>
+</html>
